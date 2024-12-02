@@ -109,17 +109,18 @@
 	await pyodide.loadPackage("micropip");
 	const micropip = pyodide.pyimport("micropip");
 	await micropip.install('pyswahili');
+	const pyswahili = pyodide.pyimport("pyswahili.swahili_node");
         BANNER =
           `Welcome to the Pyodide ${pyodide.version} terminal emulator 🐍\n` +
           BANNER;
         const pyconsole = PyodideConsole(pyodide.globals);
-
+	//const pyconsole = pyswahili.PySwahili_Repl();
         const namespace = pyodide.globals.get("dict")();
         const await_fut = pyodide.runPython(
           `
           import builtins
           from pyodide.ffi import to_js
-          from pyswahili.repl import PySwahili_Repl
+
           async def await_fut(fut):
               res = await fut
               if res is not None:
@@ -127,7 +128,6 @@
               return to_js([res], depth=1)
 
           await_fut
-          PySwahili_Repl().repl()
           `,
           { globals: namespace },
         );
@@ -158,7 +158,10 @@
           // multiline should be split (useful when pasting)
           for (const c of command.split("\n")) {
             const escaped = c.replaceAll(/\u00a0/g, " ");
-            const fut = pyconsole.push(escaped);
+	    const translated = pyodide.runPython(`from pyswahili.swahili_node import PySwahili
+translator = PySwahili()
+translator.convert_to_english("""${escaped}""")`)
+            const fut = pyconsole.push(translated);
             term.set_prompt(fut.syntax_check === "incomplete" ? ps2 : ps1);
             switch (fut.syntax_check) {
               case "syntax-error":
